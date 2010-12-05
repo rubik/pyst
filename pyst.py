@@ -11,11 +11,6 @@ def _sorted(func):
         return func(sorted(data), *args, **kwargs)
     return wrapper
 
-def mean_factory(data, r): ## FIXME seems to not work
-	if r == 0:
-		return _root(reduce(operator.mul, data), len(data))
-	return sum(d ** r for d in data) ** (1 / r)
-
 def mean(data):
     '''
     Returns the arithmetic mean of data::
@@ -26,12 +21,48 @@ def mean(data):
 
     return sum(data) / len(data)
 
+def running_average(data):
+	for i in xrange(1, len(data) + 1):
+		m = data[:i]
+		yield sum(m) / len(m)
+
 def md(data): ## mean difference
     n = len(data)
     return sum(abs(data[j] - data[i]) for i in xrange(n) for j in xrange(n)) / (n * (n - 1))
 
 def rmd(data):
     return md(data) / mean(data)
+
+def afreq(data):
+    return [data.count(d) for d in set(data)]
+
+def rfreq(data):
+    n = len(data)
+    return map(lambda i: i / n, afreq(data))
+
+def gini(data):
+    '''
+    Returns the Gini coefficients, a number between 0 and 1.
+    It is 0 when all the data are equal, and it is 1 when all the data are different::
+
+        >>> d = [1, 2, 3, 4]
+        >>> gini(d)
+        0.75
+        >>> d = [1, 1, 2, 2, 3, 3]
+        >>> gini(d) # doctest: +ELLIPSIS
+        0.666666...
+        >>> d = [1, 1, 2, 2]
+        >>> gini(d)
+        0.5
+        >>> d = [1, 1, 1, 1]
+        >>> gini(d)
+        0.0
+    '''
+
+    return 1 - sum(map(lambda i: i ** 2, rfreq(data)))
+
+def shannon(data):
+    return - sum(map(lambda i: i * math.log(i), data))
 
 def mode(data):
     return sorted((data.count(d), d) for d in set(data))[-1][1]
@@ -41,7 +72,10 @@ def geo_mean(data):
     Returns the geometric mean of *data*
     '''
 
-    return _mean_factory(data, 0)
+    return _root(reduce(operator.mul, data), len(data))
+
+def quadratic(data):
+	return math.sqrt(mean([d ** 2 for d in data]))
 
 def weighted_mean(data, weights=None):
     dt = list(set(data))
@@ -61,6 +95,9 @@ def s_moment(data, k):
 
 def range(data):
     return max(data) - min(data)
+
+def midrange(data):
+	return (max(data) + min(data)) / 2
 
 @ _sorted
 def median(data):
@@ -166,6 +203,10 @@ def quartiles(data, m=0):
 def hinges(data):
     return quartiles(data, 2)
 
+def midhinge(data):
+	h1, _, h3 = hinges(data)
+	return (h1 + h3) / 2
+
 def trimean(data):
     q1, q2, q3 = hinges(data)
     return (q1 + 2*q2 + q3) / 4
@@ -189,8 +230,18 @@ def kurtosis(data): ## kurtosis coeff, kurtosis index
     return (b - 3, b)
 
 def adev(data, m=median): ## absolute deviation
-    c = m(data)
+    try:
+        c = m(data)
+    except TypeError:
+        c = m
     return [abs(d - c) for d in data]
+
+def adev1(data, m=median, e=1):
+    try:
+        c = m(data)
+    except TypeError:
+        c = m
+    return _root(sum(abs(d - c) ** e for d in data), e)
 
 def md(data): ## mean absolute deviation
     return mean(adev(data, mean))
@@ -199,11 +250,26 @@ def mad(data): ## median absolute deviation
     return median(adev(data))
 
 def stdev(data):
+    '''
+    Returns the standard deviation of a sample of *data*::
+
+        >>> d = [1, 2, 3, 3, 5, 5, 5, 8]
+        >>> stdev(d) # doctest: +ELLIPSIS
+        2.20389...
+    '''
+
     m = mean(data)
     n = len(data)
     return math.sqrt(sum((d - m) ** 2 / (n - 1) for d in data))
 
 def pstdev(data):
+    '''
+    Returns the standard deviation of a population of *data*::
+
+        >>> d = [1, 2, 3, 3, 5, 5, 5, 8]
+        >>> pstdev(d) # doctest: +ELLIPSIS
+        2.06155...
+    '''
     m = mean(data)
     return math.sqrt(sum(((d - m) ** 2 for d in data)) / len(data))
 
