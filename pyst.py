@@ -24,8 +24,10 @@ def _sp(data1, data2):
     mx, my = mean(data1), mean(data2)
     return sum((x - mx) * (y - my) for x, y in zip(data1, data2))
 
-def sum(a):
-    return math.fsum(a)
+def sum(data):
+    return math.fsum(data)
+
+## Averages
 
 def mean(data):
     '''
@@ -37,10 +39,51 @@ def mean(data):
 
     return sum(data) / len(data)
 
+def weighted_mean(data, weights=None):
+    dt = list(set(data))
+    if weights is None:
+        weights = map(lambda i: data.count(i), dt)
+    if len(data) != len(weights) or (len(data), len(weights)) == (0, 0):
+        raise StatsError('data and weights must have the same length and cannot be empty')
+    return sum(map(lambda i: i[0] * i[1], zip(dt, weights))) / sum(weights)
+
+def geo_mean(data):
+    '''
+    Returns the geometric mean of *data*
+    '''
+
+    return _root(reduce(operator.mul, data), len(data))
+
+def quadratic(data):
+    return math.sqrt(mean([d ** 2 for d in data]))
+
+def harmonic_mean(data):
+    return len(data) / sum(1 / d for d in data)
+
 def running_average(data, m=mean):
     for i in xrange(1, len(data) + 1):
         s = data[:i]
         yield m(s)
+
+## Measures of central tendancy
+
+def mode(data):
+    data = sorted((data.count(d), d) for d in set(data))
+    n = len(data)
+    if n == 0:
+        raise StatsError('no mode defined for empty data sets')
+    if n > 1 and data[-1][0] == data[-2][0]:
+        raise StatsError('no distinct mode')
+    return data[-1][1]
+
+@ _sorted
+def median(data):
+    n = len(data)
+    if n == 0:
+        raise StatsError('no median defined for empty data sets')
+    if n & 1:
+        return data[(n + 1) // 2 - 1]
+    return (data[n // 2 - 1] + data[n // 2]) / 2
 
 def md(data): ## mean difference
     n = len(data)
@@ -58,8 +101,8 @@ def rfreq(data):
 
 def gini(data):
     '''
-    Returns the Gini coefficient, a number between 0 and ``(n - 1) / n``.
-    It is 0 when all the data are equal, and it is ``(n - 1) / n`` when all the data are different::
+    Returns the Gini coefficient, a number between ``0`` and ``(n - 1) / n``.
+    It is ``0`` when all the data are equal, and it is ``(n - 1) / n`` when all the data are different::
 
         >>> d = [1, 2, 3, 4]
         >>> gini(d)
@@ -101,32 +144,20 @@ def gini1(data):
     return gini(data) * n / (n - 1)
 
 def shannon(data):
-    return - sum(map(lambda i: i * math.log(i), data))
+    '''
+    Returns the Shannon index of *data*, a number between ``0`` and ``ln n``.
+    It is ``0`` when all the data are equal
+
+        
+    '''
+
+    n = len(data)
+    return - sum(r * math.log(r) for r in rfreq(data))
 
 def shannon1(data):
+    if len(data) in (0, 1):
+        return 0.
     return shannon(data) / math.log(len(data))
-
-def mode(data):
-    return sorted((data.count(d), d) for d in set(data))[-1][1]
-
-def geo_mean(data):
-    '''
-    Returns the geometric mean of *data*
-    '''
-
-    return _root(reduce(operator.mul, data), len(data))
-
-def quadratic(data):
-    return math.sqrt(mean([d ** 2 for d in data]))
-
-def weighted_mean(data, weights=None):
-    dt = list(set(data))
-    if weights is None:
-        weights = map(lambda i: data.count(i), dt)
-    return sum(map(lambda i: i[0] * i[1], zip(dt, weights))) / sum(weights)
-
-def harmonic_mean(data):
-    return len(data) / sum(1 / d for d in data)
 
 def c_moment(data, k):
     m = mean(data)
@@ -136,17 +167,14 @@ def s_moment(data, k):
     return sum(d ** k for d in data)
 
 def range(data):
-    return max(data) - min(data)
+    if len(data) == 0:
+        raise StatsError('no range defined for empty data sets')
+    return abs(max(data) - min(data))
 
 def midrange(data):
+    if len(data) == 0:
+        raise StatsError('no midrange defined for empty data sets')
     return (max(data) + min(data)) / 2
-
-@ _sorted
-def median(data):
-    n = len(data)
-    if n & 1:
-        return data[(n + 1) // 2 - 1]
-    return (data[n // 2 - 1] + data[n // 2]) / 2
 
 @ _sorted
 def quantile(data, p, m=0):
@@ -243,6 +271,8 @@ def quantile(data, p, m=0):
 @ _sorted
 def quartiles(data, m=0):
     n = len(data)
+    if n == 0:
+        raise StatsError('no quartiles defined for empty data sets')
     methods = [[(n * (1 / 4), n * (3 / 4)), (n * (1 / 4), n * (3 / 4))], ## Standard method
                [((n + 1) / 4, (3*n + 3) / 4), ((n + 1) / 4, (3*n + 3) / 4)], ## Minitab's method
                [((n + 2) / 4, (3*n + 2) / 4), ((n + 3) / 4, (3*n + 1) / 4)], ## Tukey's method
@@ -274,8 +304,8 @@ def percentile(data, p, m=0):
     return quantiles(data, p / 100, m)
 
 def iqr(data, m=0):
-    q = quartiles(data, m)
-    return q[2] - q[0]
+    q1, _, q3 = quartiles(data, m)
+    return abs(q3 - q1)
 
 def kurtosis(data): ## kurtosis coeff, kurtosis index
     b = c_moment(data, 4) / (c_moment(data, 2) ** 2)
@@ -362,7 +392,9 @@ def stdev(data):
 
     m = mean(data)
     n = len(data)
-    return math.sqrt(sum((d - m) ** 2 / (n - 1) for d in data))
+    if n < 2:
+        raise StatsError('standard deviation requires at leas 2 elements')
+    return math.sqrt(sum((d - m) ** 2for d in data) / (n - 1))
 
 def pstdev(data):
     '''
@@ -373,13 +405,22 @@ def pstdev(data):
         2.06155...
     '''
     m = mean(data)
-    return math.sqrt(sum(((d - m) ** 2 for d in data)) / len(data))
+    n = len(data)
+    if n < 2:
+        raise StatsError('standard deviation requires at leas 2 elements')
+    return math.sqrt(sum(((d - m) ** 2 for d in data)) / n)
 
 def pvariance(data): ## population variance
-    return _two_pass(data) / len(data)
+    n = len(data)
+    if n < 2:
+        raise StatsError('variance requires at leas 2 elements')
+    return _two_pass(data) / n
 
 def variance(data): ## sample variance
-    return _two_pass(data) / (len(data) - 1)
+    n = len(data)
+    if n < 2:
+        raise StatsError('variance requires at leas 2 elements')
+    return _two_pass(data) / (n - 1)
 
 def sums(data1, data2):
     s = collections.namedtuple('Sum', 'sumx sumy sumxy')

@@ -8,6 +8,13 @@ class TestAverages(object):
         with py.test.raises(ZeroDivisionError):
             mean([])
 
+    def test_weighted_mean(self):
+        assert weighted_mean([1, 2, 3, 4]) == mean([1, 2, 3, 4])
+        assert weighted_mean([1, 2, 3, 4], [1, 3, 2, 1]) == mean([1, 2, 2, 2, 3, 3, 4])
+        with py.test.raises(StatsError):
+            weighted_mean([], [1])
+            weighted_mean([], [])
+
     def test_harmonic_mean(self):
         assert harmonic_mean([0.25, 0.5, 1.0, 1.0]) == .5
         assert harmonic_mean([1]) == 1
@@ -36,16 +43,26 @@ class TestAverages(object):
 
 class TestCentralTendancy(object):
     def test_mode(self):
-        pass
+        assert mode([0, -42, 24, 24, 2, 1, 4]) == 24
+        with py.test.raises(StatsError):
+            mode([])
+            mode([1, 2, 3, 4])
 
     def test_median(self):
-        pass
+        assert median([1, 2, -4]) == 1
+        assert median([-4, -1, 4, -7]) == -2.5
+        with py.test.raises(StatsError):
+            median([])
 
     def test_midrange(self):
-        pass
+        assert midrange([2.0, 4.5, 7.5]) == 4.75
+        with py.test.raises(StatsError):
+            midrange([])
 
     def test_midhinge(self):
-        pass
+        assert midhinge([1, 1, 2, 3, 4, 5, 6, 7, 8, 8]) == 4.5
+        with py.test.raises(StatsError):
+            midhinge([])
 
     def test_trimean(self):
         pass
@@ -70,7 +87,10 @@ class TestOrderStatistic(object):
 
 class TestSpread(object):
     def test_stdev(self):
-        pass
+        assert pstdev([2, 4, 4, 4, 5, 5, 7, 9]) == 2
+        with py.test.raises(StatsError):
+            pstdev([])
+            pstdev([1])
 
     def test_pstdev(self):
         pass
@@ -87,7 +107,7 @@ class TestSpread(object):
     def test_range(self):
         assert range([1, 2]) == 1
         assert range([1, -42, 4, 64, 4, -4]) == 106
-        with py.test.raises(ValueError):
+        with py.test.raises(StatsError):
             range([])
 
     def test_adev(self):
@@ -100,4 +120,6 @@ class TestSpread(object):
         pass
 
     def test_mad(self):
-        pass
+        assert mad([1, 1, 2, 2, 4, 6, 9]) == 1
+        with py.test.raises(StatsError):
+            mad([])
