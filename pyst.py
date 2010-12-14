@@ -162,13 +162,6 @@ def shannon1(data):
         return 0.
     return shannon(data) / math.log(len(data))
 
-def c_moment(data, k):
-    m = mean(data)
-    return sum((d - m) ** k for d in data) / len(data)
-
-def s_moment(data, k):
-    return sum(d ** k for d in data)
-
 def range(data):
     if len(data) == 0:
         raise StatsError('no range defined for empty data sets')
@@ -310,9 +303,9 @@ def iqr(data, m=0):
     q1, _, q3 = quartiles(data, m)
     return abs(q3 - q1)
 
-def kurtosis(data): ## kurtosis coeff, kurtosis index
-    b = c_moment(data, 4) / (c_moment(data, 2) ** 2)
-    return b - 3
+def idr(data, m=0): ## Inter-decile range
+    d1, d9 = decile(data, 0, m), decile(data, 9, m)
+    return d1 - d9
 
 def adev(data, m=median): ## absolute deviation
     '''
@@ -464,15 +457,35 @@ def sterrmean(s, n, N=None):
         return st * math.sqrt((N - n) / (N - 1))
     return st
 
+## Other moments
+
+def moment(data, k): ## Central moment
+    m = mean(data)
+    return sum((d - m) ** k for d in data) / len(data)
+
+def s_moment(data, k):
+    return sum(d ** k for d in data)
+
 def skewness(data):
-    return c_moment(data, 3) / (c_moment(data, 2) ** (3 / 2))
+    return moment(data, 3) / (moment(data, 2) ** (3 / 2))
+
+def skewness1(data):
+    return math.sqrt(n * (n - 1)) * skewness(data) / (n - 2)
+
+def kurtosis(data): ## kurtosis coeff
+    b = moment(data, 4) / (len(data) * variance(data) ** 2)
+    return b - 3
 
 def quartile_skewness(data, m=0): # or bowley skewness
     q1, q2, q3 = quartiles(data, m)
     return (q1 - 2*q2 + q3) / (q3 - q1)
 
 def pearson_mode_skewness(m, mo, s):
-    return (m - mo) / s
+    if s == 0:
+        return float('nan') if m == mo else float('+inf')
+    if s > 0:
+        return (m - mo) / s
+    raise StatsError('standard deviation cannob be negative')
 
 def pearson_skewness(m, mo, me, s):
     return (3 * (m - mo) / s, 3 * (m - me) / s)

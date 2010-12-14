@@ -130,6 +130,11 @@ class TestSpread(object):
         for i in xrange(6):
             assert iqr(d, i) in (8, 10)
 
+    def test_idr(self):
+        assert idr(xrange(11)) == -9
+        with py.test.raises(IndexError):
+            idr([])
+
     def test_range(self):
         assert range([1, 2]) == 1
         assert range([1, -42, 4, 64, 4, -4]) == 106
@@ -156,3 +161,36 @@ class TestSpread(object):
         assert mad([1, 1, 2, 2, 4, 6, 9]) == 1
         with py.test.raises(StatsError):
             mad([])
+
+
+class TestMoments(object):
+    def test_moment(self):
+        d = xrange(1, 6)
+        assert moment(d, 0) == 1
+        assert moment(d, 1) == 0
+        assert moment(d, 2) == 2
+        assert moment(d, 3) == 0
+
+    def test_sample_moment(self):
+        d = xrange(1, 6)
+        assert s_moment(d, 0) == len(d)
+        assert s_moment(d, 1) == sum(d)
+        assert s_moment(d, 2) == 55
+
+    def test_skewness(self):
+        pass
+
+    def test_skewness1(self):
+        pass
+
+    def test_kurtosis(self):
+        pass
+
+    def test_quantile_skewness(self):
+        pass
+
+    def test_pearson_skewness(self):
+        pass
+
+    def test_pearson_mode_skewness(self):
+        pass
