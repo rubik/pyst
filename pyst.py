@@ -37,7 +37,10 @@ def mean(data):
         6.3333...
     '''
 
-    return sum(data) / len(data)
+    n = len(data)
+    if n == 0:
+        raise StatsError('no mean defined for empty data sets')
+    return sum(data) / n
 
 def weighted_mean(data, weights=None):
     dt = list(set(data))
@@ -296,12 +299,12 @@ def trimean(data):
 def decile(data, d, m=0):
     if not 0 <= d <= 10:
         raise StatsError('d must be between 0 and 10')
-    return quantiles(data, d / 10, m)
+    return quantile(data, d / 10, m)
 
 def percentile(data, p, m=0):
     if not 0 <= p <= 100:
         raise StatsError('p must be between 0 and 100')
-    return quantiles(data, p / 100, m)
+    return quantile(data, p / 100, m)
 
 def iqr(data, m=0):
     q1, _, q3 = quartiles(data, m)

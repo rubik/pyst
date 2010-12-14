@@ -5,7 +5,7 @@ class TestAverages(object):
     def test_mean(self):
         assert mean([1, 2, 3, 4]) == 2.5
         assert mean([0]) == 0
-        with py.test.raises(ZeroDivisionError):
+        with py.test.raises(StatsError):
             mean([])
 
     def test_weighted_mean(self):
@@ -37,7 +37,7 @@ class TestAverages(object):
         assert quadratic([-2, 2, 4, -5]) == 3.5
         assert quadratic([2, -2, 4, 5]) == 3.5
         assert quadratic([-2, 2, -4, 5]) == 3.5
-        with py.test.raises(ZeroDivisionError):
+        with py.test.raises(StatsError):
             quadratic([])
 
 
@@ -65,7 +65,12 @@ class TestCentralTendancy(object):
             midhinge([])
 
     def test_trimean(self):
-        pass
+        assert trimean([1, 1, 3, 5, 7, 9, 10, 14, 18]) == 6.75
+        assert trimean([0, 1, 2, 3, 4, 5, 6, 7, 8]) == 4
+        d = xrange(100)
+        assert trimean(d) == (median(d) + midhinge(d)) / 2
+        with py.test.raises(StatsError):
+            trimean([])
 
 
 class TestOrderStatistic(object):
@@ -76,33 +81,54 @@ class TestOrderStatistic(object):
         pass
 
     def test_decile(self):
-        pass
+        d = xrange(11)
+        for i in xrange(11):
+            assert decile(d, i) == d[i]
+        d = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+        assert decile(d, 7) == 14
+        with py.test.raises(IndexError):
+            decile([], 1)
 
     def test_percentile(self):
-        pass
+        d = xrange(101)
+        for i in xrange(101):
+            assert percentile(d, i) == d[i]
+        d = xrange(1, 201)
+        assert percentile(d, 7) == 15
+        assert percentile(d, 7, 2) == 14
+        with py.test.raises(IndexError):
+            percentile([], 1)
 
     def test_hinges(self):
-        pass
+        assert hinges(xrange(9)) == (2, 4, 6)
+        assert hinges([2, 4, 6, 8, 10, 12, 14, 16, 18]) == (6, 10, 14)
+        with py.test.raises(StatsError):
+            hinges([])
 
 
 class TestSpread(object):
     def test_stdev(self):
+        pass
+
+    def test_pstdev(self):
         assert pstdev([2, 4, 4, 4, 5, 5, 7, 9]) == 2
         with py.test.raises(StatsError):
             pstdev([])
             pstdev([1])
 
-    def test_pstdev(self):
-        pass
-
     def test_variance(self):
         pass
 
     def test_pvariance(self):
-        pass
+        assert pvariance([2, 4, 4, 4, 5, 5, 7, 9]) == 4
+        with py.test.raises(StatsError):
+            pvariance([])
+            pvariance([1])
 
     def test_iqr(self):
-        pass
+        d = xrange(102, 119, 2)
+        for i in xrange(6):
+            assert iqr(d, i) in (8, 10)
 
     def test_range(self):
         assert range([1, 2]) == 1
@@ -111,7 +137,14 @@ class TestSpread(object):
             range([])
 
     def test_adev(self):
-        pass
+        d = [1, 2, 3, 4, 5]
+        assert adev(d, d[0]) == [0, 1, 2, 3, 4]
+        assert adev(d, d[-1]) == [4, 3, 2, 1, 0]
+        assert adev(d) == [2, 1, 0, 1, 2]
+        assert adev(d + [6]) == [2.5, 1.5, .5, .5, 1.5, 2.5]
+        assert adev(d, mean) == [2, 1, 0, 1, 2]
+        with py.test.raises(StatsError):
+            adev(d, mode)
 
     def test_adev1(self):
         pass
