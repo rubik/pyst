@@ -11,6 +11,9 @@ class StatsError(ValueError):
 def _root(n, k):
     return n ** (1 / k)
 
+def _bin_coeff(n, k):
+    return math.factorial(n) / (math.factorial(n - k) * math.factorial(k))
+
 def _sorted(func):
     def wrapper(data, *args, **kwargs):
         return func(sorted(data), *args, **kwargs)
@@ -26,6 +29,15 @@ def _sp(data1, data2):
 
 def sum(data):
     return math.fsum(data)
+
+## Others
+
+def afreq(data):
+    return [data.count(d) for d in set(data)]
+
+def rfreq(data):
+    n = len(data)
+    return map(lambda i: i / n, afreq(data))
 
 ## Averages
 
@@ -94,13 +106,6 @@ def md(data): ## mean difference
 
 def rmd(data):
     return md(data) / mean(data)
-
-def afreq(data):
-    return [data.count(d) for d in set(data)]
-
-def rfreq(data):
-    n = len(data)
-    return map(lambda i: i / n, afreq(data))
 
 def gini(data):
     '''
@@ -460,11 +465,21 @@ def sterrmean(s, n, N=None):
 ## Other moments
 
 def moment(data, k): ## Central moment
+    if k == 0:
+        return 1.
+    if k == 1:
+        return 0.
     m = mean(data)
     return sum((d - m) ** k for d in data) / len(data)
 
-def s_moment(data, k):
-    return sum(d ** k for d in data)
+def s_moment(data, k): ## Standardized moment 
+    return moment(data, k) / (stdev(data) ** k)
+
+def r_moment(data, k): ## Raw moment
+    m = mean(data)
+    if k == 1:
+        return m
+    return sum(_bin_coeff(k, n) * moment(data, n) * m ** (k - n) for n in xrange(k + 1))
 
 def skewness(data):
     return moment(data, 3) / (moment(data, 2) ** (3 / 2))
@@ -472,9 +487,9 @@ def skewness(data):
 def skewness1(data):
     return math.sqrt(n * (n - 1)) * skewness(data) / (n - 2)
 
-def kurtosis(data): ## kurtosis coeff
-    b = moment(data, 4) / (len(data) * variance(data) ** 2)
-    return b - 3
+def kurtosis(data): ## kurtosis coeff, excess kurtosis
+    b = moment(data, 4) / (moment(data, 2) ** 2)
+    return b, b - 3
 
 def quartile_skewness(data, m=0): # or bowley skewness
     q1, q2, q3 = quartiles(data, m)
