@@ -244,15 +244,36 @@ def quantile(data, p, m=0):
         return methods[m]()
 
 @ _sorted
-def quartiles(data, m=0):
+def quartiles(data, m=1):
+    '''
+    Returns the quantiles Q1, Q2 and Q3, where one quarter of the data is below Q1, two quarters below Q2 and three quarters below Q3.
+    The exact values Q1, Q2 and Q3 depend on the method (default to 1):
+
+    Method  Description
+    ======  ============================================================
+    0       Standard method (1)
+    1       Method used by Minitab software (2)
+    2       Tukey's method, the median is included in the two halves (3)
+    3       Method recommended by Moore and McCabe
+    4       Method recommended by Mendenhall and Sincich (4)
+    5       Method recommended by Freund and Perles (2) (5)
+
+    Notes:
+    (1) Compute the first quartile Q1 with ``n / 4`` and Q3 with ``3n / 4``
+    (2) Uses linear interpolation between items
+    (3) Equivalent to Tukey's hinges H1, M, H2
+    (4) Ensure that value returned are always data points
+    (5) For compatibility with Microsoft Excel and OpenOffice, use this method
+    '''
+
     n = len(data)
-    if n == 0:
-        raise StatsError('no quartiles defined for empty data sets')
-    methods = [[(n * (1 / 4), n * (3 / 4)), (n * (1 / 4), n * (3 / 4))], ## Standard method
+    if n < 3:
+        raise StatsError('need at least 3 items')
+    methods = [[(n / 4, n * 3 / 4), (n / 4, n * 3 / 4)], ## Standard method
                [((n + 1) / 4, (3*n + 3) / 4), ((n + 1) / 4, (3*n + 3) / 4)], ## Minitab's method
                [((n + 2) / 4, (3*n + 2) / 4), ((n + 3) / 4, (3*n + 1) / 4)], ## Tukey's method
                [((n + 2) / 4, (3*n + 2) / 4), ((n + 1) / 4, (3*n + 3) / 4)], ## Moore and McCabe
-               [((n + 1) / 4, (3*n + 3) / 4), ((n + 1) / 4, (3*n + 3) / 4)], ## Mendenhall and Sincich
+               [map(round, ((n + 1) / 4, (3*n + 3) / 4)), map(round, ((n + 1) / 4, (3*n + 3) / 4))], ## Mendenhall and Sincich
                [((n + 3) / 4, (3*n + 1) / 4), ((n + 3) / 4, (3*n + 1) / 4)]] ## Freund and Perles
     q1, q3 = map(math.ceil, methods[m][n & 1])
     return (data[int(q1 - 1)], median(data), data[int(q3 - 1)])
