@@ -19,6 +19,18 @@ def _sorted(func):
         return func(sorted(data), *args, **kwargs)
     return wrapper
 
+def _split(func):
+    def wrapper(xdata, ydata=None):
+        if ydata is None:
+            xdata, ydata = zip(*xdata)
+        n = len(xdata)
+        if n != len(ydata):
+            raise StatsError('xdata and ydata must have the same length')
+        if n == 0:
+            raise StatsError('xdata and ydata cannot be empty')
+        return func(xdata, ydata, n)
+    return wrapper
+
 def _two_pass(data): ## two-pass algorithm
     m = mean(data)
     return sum((d - m) ** 2 for d in data)
@@ -80,6 +92,28 @@ def running_average(data, m=mean):
         s = data[:i]
         yield m(s)
 
+@ _sorted
+def trimmed_mean(data, p, m=mean):
+    p /= 2
+    n = len(data)
+    if not n:
+        raise StatsError('no trimmed mean defined for empty data set')
+    i = int(math.ceil(n * p / 100))
+    d = data[i:-i]
+    if not d:
+        return median(data)
+    return m(d)
+
+def circular_mean(data, deg=False):
+    if deg:
+        data = map(math.radians, data)
+    n = len(data)
+    th = math.atan2(math.fsum(math.sin(d) for d in data) / n, math.fsum(math.cos(d) for d in data) / n)
+    if deg:
+        th = math.degrees(th)
+    return th
+
+###############################
 ## Measures of central tendancy
 
 def mode(data):
@@ -102,70 +136,10 @@ def median(data):
 
 def md(data): ## mean difference
     n = len(data)
-    return sum(abs(data[j] - data[i]) for i in xrange(n) for j in xrange(n)) / (n * (n - 1))
+    return sum(abs(j - i) for i in data for j in data) / (n * (n - 1))
 
 def rmd(data):
     return md(data) / mean(data)
-
-def gini(data):
-    '''
-    Returns the Gini coefficient, a number between ``0`` and ``(n - 1) / n``.
-    It is ``0`` when all the data are equal, and it is ``(n - 1) / n`` when all the data are different::
-
-        >>> d = [1, 2, 3, 4]
-        >>> gini(d)
-        0.75
-        >>> d = [1, 1, 2, 2, 3, 3]
-        >>> gini(d) # doctest: +ELLIPSIS
-        0.666666...
-        >>> d = [1, 1, 2, 2]
-        >>> gini(d)
-        0.5
-        >>> d = [1, 1, 1, 1]
-        >>> gini(d)
-        0.0
-    '''
-
-    return 1 - sum(map(lambda i: i ** 2, rfreq(data)))
-
-def gini1(data):
-    '''
-    Returns the normalized Gini coefficient, a number between 0 and 1. It is 0
-    when all the data are equal and 1 when all the data are different::
-
-        >>> d = [1, 2, 3, 4]
-        >>> gini1(d)
-        1.0
-        >>> d = [1, 2, 3, 4, 5, 1, 3, 4, 6, 7, 2]
-        >>> gini1(d)
-        0.9272727272727271
-        >>> d = [1]
-        >>> gini1(d)
-        0.0
-        >>> gini([])
-        0.0
-    '''
-
-    n = len(data)
-    if n in (0, 1):
-        return 0.
-    return gini(data) * n / (n - 1)
-
-def shannon(data):
-    '''
-    Returns the Shannon index of *data*, a number between ``0`` and ``ln n``.
-    It is ``0`` when all the data are equal
-
-        
-    '''
-
-    n = len(data)
-    return - sum(r * math.log(r) for r in rfreq(data))
-
-def shannon1(data):
-    if len(data) in (0, 1):
-        return 0.
-    return shannon(data) / math.log(len(data))
 
 def range(data):
     if len(data) == 0:
@@ -189,7 +163,7 @@ def quantile(data, p, m=0):
 
     '''
 
-    def _helper(h):
+    def _compute(h):
         return data[int(math.floor(h) - 1)] + (h - math.floor(h)) * (data[int(math.floor(h))] - data[int(math.floor(h) - 1)])
     def r1():
         if p == 0:
@@ -220,47 +194,47 @@ def quantile(data, p, m=0):
         if p == 1:
             return data[-1]
         h = n * p
-        return _helper(h)
+        return _compute(h)
     def r5():
         if p < .5 / n:
             return data[0]
         if p >= (n - .5) / n:
             return data[-1]
         h = n * p + .5
-        return _helper(h)
+        return _compute(h)
     def r6():
         if p < 1 / (n + 1):
             return data[0]
         if p >= n / (n + 1):
             return data[-1]
         h = (n + 1) * p
-        return _helper(h)
+        return _compute(h)
     def r7():
         if p == 1:
             return data[-1]
         h = (n - 1) * p + 1
-        return _helper(h)
+        return _compute(h)
     def r8():
         if p < (2 / 3) / (n + 1/3):
             return data[0]
         if p >= (n - 1 / 3) / (n + 1 / 3):
             return data[-1]
         h = (n + 1 / 3) * p + 1 / 3
-        return _helper(h)
+        return _compute(h)
     def r9():
         if p < (5 / 8) / (n + 1 / 4):
             return data[0]
         if p >= (n - 3 / 8) / (n + 1 / 4):
             return data[-1]
         h = (n + 1 / 4) * p + 3 / 8
-        return _helper(h)
+        return _compute(h)
     def unknown():
         if p < (3 / 2) / (n + 2):
             return data[0]
         if p >= (n + 1 / 2) / (n + 2):
             return data[-1]
         h = (n + 2) * p - .5
-        return _helper(h)
+        return _compute(h)
 
     n = len(data)
     methods = [r1, r2, r3, r4, r5, r6, r7, r8, r9, unknown]
@@ -376,11 +350,14 @@ def adev1(data, m=median, e=1):
         c = m
     return _root(sum(abs(d - c) ** e for d in data), e)
 
-def md(data): ## mean absolute deviation
+def m_d(data): ## mean absolute deviation
     return mean(adev(data, mean))
 
 def mad(data): ## median absolute deviation
     return median(adev(data))
+
+#####################
+## Measures of spread
 
 def stdev(data):
     '''
@@ -423,28 +400,6 @@ def variance(data): ## sample variance
         raise StatsError('variance requires at leas 2 elements')
     return _two_pass(data) / (n - 1)
 
-def sums(data1, data2):
-    s = collections.namedtuple('Sum', 'sumx sumy sumxy')
-    xy = map(lambda i: i[0] * i[1], zip(data1, data2))
-    return s(sum(data1), sum(data2), sum(xy))
-
-def pcov(data1, data2):
-    sp = _sp(data1, data2)
-    return sp / len(data1)
-
-def cov(data1, data2):
-    sp = _sp(data1, data2)
-    return sp / (len(data1) - 1)
-
-def pcv(data): ## coefficient of variation of a population
-    return pstdev(data) / mean(data)
-
-def cv(data): ## coefficient of variation of a sample
-    return stdev(data) / mean(data)
-
-def id(data): ## Index of dispersion
-    return variance(data) / mean(data)
-
 def sterrmean(s, n, N=None):
     if N is not None and N < n:
         raise StatsError('the population cannot be smaller than the sample')
@@ -462,6 +417,7 @@ def sterrmean(s, n, N=None):
         return st * math.sqrt((N - n) / (N - 1))
     return st
 
+################
 ## Other moments
 
 def moment(data, k): ## Central moment
@@ -484,15 +440,11 @@ def r_moment(data, k): ## Raw moment
 def skewness(data):
     return moment(data, 3) / (moment(data, 2) ** (3 / 2))
 
-def skewness1(data):
-    return math.sqrt(n * (n - 1)) * skewness(data) / (n - 2)
-
 def kurtosis(data): ## kurtosis coeff, excess kurtosis
     b = moment(data, 4) / (moment(data, 2) ** 2)
     return b, b - 3
 
-def quartile_skewness(data, m=0): # or bowley skewness
-    q1, q2, q3 = quartiles(data, m)
+def quartile_skewness(q1, q2, q3): # or bowley skewness
     return (q1 - 2*q2 + q3) / (q3 - q1)
 
 def pearson_mode_skewness(m, mo, s):
@@ -500,16 +452,132 @@ def pearson_mode_skewness(m, mo, s):
         return float('nan') if m == mo else float('+inf')
     if s > 0:
         return (m - mo) / s
-    raise StatsError('standard deviation cannob be negative')
+    raise StatsError('standard deviation cannot be negative')
 
 def pearson_skewness(m, mo, me, s):
+    if s < 0:
+        raise StatsError('standard deviation cannot be negative')
     return (3 * (m - mo) / s, 3 * (m - me) / s)
 
-def circular_mean(data, deg=False): ## FIXME does not work
-    if deg:
-        data = map(math.radians, data)
+###########################
+## Indexes and coefficients
+
+def pcv(data): ## coefficient of variation of a population
+    return pstdev(data) / mean(data)
+
+def cv(data): ## coefficient of variation of a sample
+    return stdev(data) / mean(data)
+
+def id(data): ## Index of dispersion
+    return variance(data) / mean(data)
+
+def gini(data):
+    '''
+    Returns the Gini coefficient, a number between ``0`` and ``(n - 1) / n``.
+    It is ``0`` when all the data are equal, and it is ``(n - 1) / n`` when all the data are different::
+
+        >>> d = [1, 2, 3, 4]
+        >>> gini(d)
+        0.75
+        >>> d = [1, 1, 2, 2, 3, 3]
+        >>> gini(d) # doctest: +ELLIPSIS
+        0.666666...
+        >>> d = [1, 1, 2, 2]
+        >>> gini(d)
+        0.5
+        >>> d = [1, 1, 1, 1]
+        >>> gini(d)
+        0.0
+    '''
+
+    return 1 - sum(map(lambda i: i ** 2, rfreq(data)))
+
+def gini1(data):
+    '''
+    Returns the normalized Gini coefficient, a number between 0 and 1. It is 0
+    when all the data are equal and 1 when all the data are different::
+
+        >>> d = [1, 2, 3, 4]
+        >>> gini1(d)
+        1.0
+        >>> d = [1, 2, 3, 4, 5, 1, 3, 4, 6, 7, 2]
+        >>> gini1(d)
+        0.9272727272727271
+        >>> d = [1]
+        >>> gini1(d)
+        0.0
+        >>> gini([])
+        0.0
+    '''
+
     n = len(data)
-    return math.atan2(math.fsum(math.sin(d) for d in data) / n, math.fsum(math.cos(d) for d in data) / n)
+    if n in (0, 1):
+        return 0.
+    return gini(data) * n / (n - 1)
+
+def shannon(data):
+    '''
+    Returns the Shannon index of *data*, a number between ``0`` and ``ln n``.
+    It is ``0`` when all the data are equal
+
+        
+    '''
+
+    n = len(data)
+    return - sum(r * math.log(r) for r in rfreq(data))
+
+def shannon1(data):
+    if len(data) in (0, 1):
+        return 0.
+    return shannon(data) / math.log(len(data))
+
+## Other functions
+
+def z_score(x, m, s):
+    return (x - m) / s
+
+## Multivariate
+
+@ _split
+def pcov(xdata, ydata, n):
+    sp = _sp(xdata, ydata)
+    return sp / n
+
+@ _split
+def cov(xdata, ydata, n):
+    sp = _sp(xdata, ydata)
+    return sp / (n - 1)
+
+@ _split
+def qcorr(xdata, ydata, n):
+    ac = bd = s = 0
+    xmed, ymed = median(xdata), median(ydata)
+    for x, y in zip(xdata, ydata):
+        if (x > xmed and y > ymed) or (x < xmed and y < ymed):
+            ac += 1
+        elif (x > xmed and y < ymed) or (x < xmed and y > ymed):
+            bd += 1
+        else:
+            s += 1
+    return (ac - bd) / (n - s)
+
+@ _split
+def pcorr(xdata, ydata, n):
+    sx, sy, sxy, sx2, sy2 = sum(xdata), sum(ydata), \
+                            sum(x * y for x, y in zip(xdata, ydata)), \
+                            sum(x**2 for x in xdata), sum(y**2 for y in ydata)
+    return (sxy - sx * sy / n) / math.sqrt((sx2 - sx ** 2 / n) * (sy2 - sy ** 2 / n))
+
+@ _split
+def corr(xdata, ydata, n):
+    mx, sx = mean(xdata), stdev(xdata)
+    my, sy = mean(ydata), stdev(ydata)
+    return sum(z_score(x, mx, sx) * z_score(y, my, sy) for x, y in zip(xdata, ydata)) / n
+
+
+##################################################################################
+############# Still in development ###############################################
+##################################################################################
 
 
 if __name__ == '__main__':

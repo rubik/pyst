@@ -1,3 +1,5 @@
+from __future__ import division
+
 import py
 from pyst import *
 
@@ -39,6 +41,12 @@ class TestAverages(object):
         assert quadratic([-2, 2, -4, 5]) == 3.5
         with py.test.raises(StatsError):
             quadratic([])
+
+    def test_running_average(self):
+        pass
+
+    def test_trimmed_mean(self):
+        pass
 
 
 class TestCentralTendancy(object):
@@ -156,11 +164,25 @@ class TestSpread(object):
         assert adev(d, mean) == [2, 1, 0, 1, 2]
         with py.test.raises(StatsError):
             adev(d, mode)
+            adev([])
 
     def test_adev1(self):
-        pass
+        d = [1, 2, 3, 4, 5]
+        assert adev1(d, d[0], 2) == (30 ** .5)
+        assert adev1(d, d[0], 2) == adev1(d, d[-1], 2)
+        assert adev1(d, e=2) == (10 ** .5)
+        with py.test.raises(StatsError):
+            adev1(d, mode)
+            adev1([])
 
     def test_md(self):
+        d = [1, 2, 3, 4]
+        assert md(d) == 20 / 12
+
+    def test_rmd(self):
+        pass
+
+    def test_m_d(self):
         pass
 
     def test_mad(self):
@@ -177,8 +199,16 @@ class TestMoments(object):
         assert moment(d, 2) == 2
         assert moment(d, 3) == 0
 
-    def test_skewness(self):
+    def test_standardized_moment(self):
         pass
+
+    def test_raw_moment(self):
+        pass
+
+    def test_skewness(self):
+        d, d1 = [1, 2, 3, 4, 5], [5, 4, 3, 2, 1]
+        assert skewness(d) == skewness(d1) == 0
+        
 
     def test_skewness1(self):
         pass
@@ -186,7 +216,7 @@ class TestMoments(object):
     def test_kurtosis(self):
         pass
 
-    def test_quantile_skewness(self):
+    def test_quartile_skewness(self):
         pass
 
     def test_pearson_skewness(self):
@@ -199,6 +229,8 @@ class TestMoments(object):
 class TestOthers(object):
     def test_afreq(self):
         assert afreq([1, 1, 2, 3, 4]) == [2, 1, 1, 1]
+        assert afreq([]) == []
 
     def test_rfreq(self):
         assert rfreq([1, 1, 2, 3, 4]) == [.4, .2, .2, .2]
+        assert rfreq([]) == []
