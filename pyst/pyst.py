@@ -382,7 +382,7 @@ def mad(data): ## median absolute deviation
 
 def stdev(data):
     '''
-    Returns the standard deviation of a sample of *data*::
+    Returns the standard deviation of *data*::
 
         >>> d = [1, 2, 3, 3, 5, 5, 5, 8]
         >>> stdev(d) # doctest: +ELLIPSIS
@@ -397,7 +397,7 @@ def stdev(data):
 
 def pstdev(data):
     '''
-    Returns the standard deviation of a population of *data*::
+    Returns the standard deviation of *data*::
 
         >>> d = [1, 2, 3, 3, 5, 5, 5, 8]
         >>> pstdev(d) # doctest: +ELLIPSIS

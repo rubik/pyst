@@ -1,3 +1,4 @@
 *.komodoproject
 *.pyc
 *~
+*/_build/*

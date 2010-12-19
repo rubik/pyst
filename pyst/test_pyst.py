@@ -208,10 +208,6 @@ class TestMoments(object):
     def test_skewness(self):
         d, d1 = [1, 2, 3, 4, 5], [5, 4, 3, 2, 1]
         assert skewness(d) == skewness(d1) == 0
-        
-
-    def test_skewness1(self):
-        pass
 
     def test_kurtosis(self):
         pass

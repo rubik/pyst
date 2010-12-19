@@ -6,15 +6,28 @@
 Welcome to pyst's documentation!
 ================================
 
-Contents:
+pyst is a Python module that provides over 50 statistical functions, including:
+
+    * Univariate statistic
+        * arithmetic mean, harmonic mean, geometric mean, quadratic mean;
+        * running averages, trimmed mean, weighted mean, circular mean;
+        * mode, median, quantiles and quartiles;
+        * deciles, percentiles, absolute deviation;
+        * standard deviation (sample and population), variance (sample and population);
+        * central moments, standardized moments, raw moments;
+        * skewness and kurtosis;
+
+    * Multivariate statistic
+        * Q-correlation coefficient;
+        * Pearson's correlation coefficient (sample and population);
+
+    and others.
+
+Contents
+--------
 
 .. toctree::
    :maxdepth: 2
+   :numbered:
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+   univariate.rst
