@@ -55,10 +55,12 @@ def rfreq(data):
 
 def mean(data):
     '''
-    Returns the arithmetic mean of data::
+    Returns the arithmetic mean of *data*::
 
         >>> mean([1, -4, 32, 5, 3, 1]) # doctest: +ELLIPSIS
-        6.3333...
+        6.333333...
+
+    The mean is the sum of the data divided by the number of data. It is usually called *the average*.
     '''
 
     n = len(data)
@@ -76,15 +78,56 @@ def weighted_mean(data, weights=None):
 
 def geo_mean(data):
     '''
-    Returns the geometric mean of *data*
+    Returns the geometric mean of *data*::
+
+        >>> d = [1, .244, 12, 53]
+        >>> geo_mean(d) # doctest: +ELLIPSIS
+        3.5294882...
+
+    The geometric mean is the n-th root of the product of the data.
+    It is usually used for averaging exponential growth rates.
     '''
 
     return _root(reduce(operator.mul, data), len(data))
 
 def quadratic(data):
+    '''
+    Returns the quadratic mean of *data*::
+
+        >>> d = [1, -23, 24, -2, 42, -2]
+        >>> quadratic(d)
+        21.90129372130027
+
+    The quadratic mean is the square root of the arithmetic mean of the squares
+    of the data. It is usually used when the data vary from negative to positive.
+    '''
+
     return math.sqrt(mean([d ** 2 for d in data]))
 
 def harmonic_mean(data):
+    '''
+    Returns the harmonic mean of *data*::
+
+        >>> d = [1, 2, -5, 2, 0.2]
+        >>> harmonic_mean(d) # doctest: +ELLIPSIS
+        0.73529411...
+        >>> d = [1, -24, .2, 0]
+        >>> harmonic_mean(d)
+        Traceback (most recent call last):
+          File "<pyshell#4>", line 1, in <module>
+            harmonic_mean(d)
+          File "pyst.py", line 97, in harmonic_mean
+            return len(data) / sum(1 / d for d in data)
+          File "pyst.py", line 43, in sum
+            return math.fsum(data)
+          File "pyst.py", line 97, in <genexpr>
+            return len(data) / sum(1 / d for d in data)
+        ZeroDivisionError: float division
+
+    The harmonic mean is the reciprocal of the arithmetic mean of the reciprocals
+    of the data. It is usually used for averaging rates.
+    '''
+
     return len(data) / sum(1 / d for d in data)
 
 def running_average(data, m=mean):
@@ -316,7 +359,8 @@ def adev(data, m=median): ## absolute deviation
     :type m: number or callable
     :rtype: a list of numbers
 
-    ::
+    Some examples::
+
         >>> data = [1, 2, 3, 4, 5]
         >>> adev(data, data[0]) ## Absolute deviation from the first point
         [0, 1, 2, 3, 4]

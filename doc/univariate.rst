@@ -20,9 +20,9 @@ Averages
 
 .. autofunction:: quadratic
 
-.. autofunction:: running_average
+.. autofunction:: running_average(data, m=mean)
 
-.. autofunction:: trimmed_mean
+.. autofunction:: trimmed_mean(data, p, m=mean)
 
 
 Central tendancy
@@ -30,7 +30,7 @@ Central tendancy
 
 .. autofunction:: mode
 
-.. autofunction:: median
+.. autofunction:: median(data)
 
 .. autofunction:: midrange
 
@@ -42,9 +42,9 @@ Central tendancy
 Order statistic
 ---------------
 
-.. autofunction:: quantile
+.. autofunction:: quantile(data, p, m=0)
 
-.. autofunction:: quartiles
+.. autofunction:: quartiles(data, m=1)
 
 .. autofunction:: decile
 
@@ -70,9 +70,9 @@ Spread
 
 .. autofunction:: range
 
-.. autofunction:: adev
+.. autofunction:: adev(data, m=mean)
 
-.. autofunction:: adev1
+.. autofunction:: adev1(data, m=mean, e=1)
 
 .. autofunction:: md
 
