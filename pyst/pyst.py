@@ -3,6 +3,7 @@
 from __future__ import division
 import math
 import operator
+import functools
 import collections
 
 class StatsError(ValueError):
@@ -15,11 +16,13 @@ def _bin_coeff(n, k):
     return math.factorial(n) / (math.factorial(n - k) * math.factorial(k))
 
 def _sorted(func):
+    @ functools.wraps(func)
     def wrapper(data, *args, **kwargs):
         return func(sorted(data), *args, **kwargs)
     return wrapper
 
 def _split(func):
+    @ functools.wraps(func)
     def wrapper(xdata, ydata=None):
         if ydata is None:
             xdata, ydata = zip(*xdata)
@@ -55,12 +58,12 @@ def rfreq(data):
 
 def mean(data):
     '''
-    Returns the arithmetic mean of *data*::
+    Returns the arithmetic mean of *data*.
+    The mean is the sum of the data divided by the number of data.
+    It is usually called *the average*::
 
         >>> mean([1, -4, 32, 5, 3, 1]) # doctest: +ELLIPSIS
         6.333333...
-
-    The mean is the sum of the data divided by the number of data. It is usually called *the average*.
     '''
 
     n = len(data)
@@ -78,35 +81,35 @@ def weighted_mean(data, weights=None):
 
 def geo_mean(data):
     '''
-    Returns the geometric mean of *data*::
+    Returns the geometric mean of *data*.
+    The geometric mean is the n-th root of the product of the data.
+    It is usually used for averaging exponential growth rates::
 
         >>> d = [1, .244, 12, 53]
         >>> geo_mean(d) # doctest: +ELLIPSIS
         3.5294882...
-
-    The geometric mean is the n-th root of the product of the data.
-    It is usually used for averaging exponential growth rates.
     '''
 
     return _root(reduce(operator.mul, data), len(data))
 
 def quadratic(data):
     '''
-    Returns the quadratic mean of *data*::
+    Returns the quadratic mean of *data*.
+    The quadratic mean is the square root of the arithmetic mean of the squares
+    of the data. It is usually used when the data vary from negative to positive::
 
         >>> d = [1, -23, 24, -2, 42, -2]
-        >>> quadratic(d)
-        21.90129372130027
-
-    The quadratic mean is the square root of the arithmetic mean of the squares
-    of the data. It is usually used when the data vary from negative to positive.
+        >>> quadratic(d) # doctest: +ELLIPSIS
+        21.9012937...
     '''
 
     return math.sqrt(mean([d ** 2 for d in data]))
 
 def harmonic_mean(data):
     '''
-    Returns the harmonic mean of *data*::
+    Returns the harmonic mean of *data*.
+    The harmonic mean is the reciprocal of the arithmetic mean of the reciprocals
+    of the data. It is usually used for averaging rates::
 
         >>> d = [1, 2, -5, 2, 0.2]
         >>> harmonic_mean(d) # doctest: +ELLIPSIS
@@ -123,28 +126,83 @@ def harmonic_mean(data):
           File "pyst.py", line 97, in <genexpr>
             return len(data) / sum(1 / d for d in data)
         ZeroDivisionError: float division
-
-    The harmonic mean is the reciprocal of the arithmetic mean of the reciprocals
-    of the data. It is usually used for averaging rates.
     '''
 
     return len(data) / sum(1 / d for d in data)
 
 def running_average(data, m=mean):
+    '''
+    Iterates over *data* yielding the running average.
+
+    :param m: a function that compute the average
+    :rtype: generator expression
+
+    Examples::
+
+        >>> d = [1, -32, 42, -3, 42]
+        >>> for i in running_average(d): print i # doctest: +ELLIPSIS
+        1.0
+        -15.5
+        3.66666...
+        2.0
+        10.0
+        >>> list(running_average(d, harmonic_mean)) # doctest: +ELLIPSIS
+        [1.0, 2.06451612..., 3.022488755..., 6.06772009..., 7.320261437...]
+        >>> list(running_average(d, quadratic)) # doctest: +ELLIPSIS
+        [1.0, 22.6384628..., 30.49043565..., 26.4480623..., 30.20595967...]
+    '''
+
     for i in xrange(1, len(data) + 1):
         s = data[:i]
         yield m(s)
 
 @ _sorted
 def trimmed_mean(data, p, m=mean):
-    p /= 2
+    '''
+    Returns the trimmed mean of *data*.
+    A trimmed mean is calculated by discarding a certain percentage of the
+    lowest and the highest scores and then computing the mean of the remaining scores.
+
+    :param p: the rate to discard
+    :param m: a function that accept an argument. After the data trimming, the remaining score will be passed to this function, default to ``mean``
+    :rtype: float
+
+    Some examples::
+
+        >>> d = [1, 23, 3, 19, 45, 1003]
+        >>> mean(d)
+        182.33333333333334
+        >>> trimmed_mean(d, 0)
+        182.33333333333334
+        >>> trimmed_mean(d, 20)
+        22.5
+        >>> trimmed_mean(d, 25)
+        22.5
+        >>> trimmed_mean(d, 40)
+        22.5
+        >>> trimmed_mean(d, 70)
+        21.0
+        >>> trimmed_mean(d, 100) ## the median
+        21.0
+        >>> trimmed_mean(d, 20, harmonic_mean) # doctest: +ELLIPSIS
+        8.85611348...
+        >>> trimmed_mean(d, 20, quadratic) # doctest: +ELLIPSIS
+        27.0370116...
+        >>> trimmed_mean(d, 20, geo_mean) # doctest: +ELLIPSIS
+        15.5848921...
+    '''
+
     n = len(data)
     if not n:
         raise StatsError('no trimmed mean defined for empty data set')
-    i = int(math.ceil(n * p / 100))
+    if p == 0:
+        return m(data)
+    me = median(data)
+    c = n / 2 - 1
+    i = int(math.ceil(c * p / 100))
     d = data[i:-i]
     if not d:
-        return median(data)
+        return me
     return m(d)
 
 def circular_mean(data, deg=False):
@@ -199,10 +257,23 @@ def quantile(data, p, m=0):
     '''
     Returns the *p*-th quantile of *data*.
 
-    :param integer m: the method to use, it can be a number from 0 to 9:
+    :param integer m: the method to use, it can be a number from 0 to 9
+    :rtype: an element of *data*
 
-        m
-        ==
+    ======  ======================================================
+    Method  Description
+    ======  ======================================================
+    0
+    1
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    ======  ======================================================
 
     '''
 
@@ -281,10 +352,17 @@ def quantile(data, p, m=0):
 
     n = len(data)
     methods = [r1, r2, r3, r4, r5, r6, r7, r8, r9, unknown]
-    try:
-        return methods[m]()
-    except IndexError:
-        return methods[m]()
+    return methods[m]()
+
+@ _sorted
+def parametrized_quantile(data, p, scheme):
+    n = len(data)
+    a, b, c, d = scheme
+    if n < 2:
+        raise StatsError('need at least 2 elements to split data into quantiles')
+    x = a + (n + b) * p
+    i, ii = map(int, (math.ceil(x), math.floor(x)))
+    return data[i] + (data[ii] - data[i]) * (c + d * math.modf(x)[0])
 
 @ _sorted
 def quartiles(data, m=1):
@@ -292,6 +370,7 @@ def quartiles(data, m=1):
     Returns the quantiles Q1, Q2 and Q3, where one quarter of the data is below Q1, two quarters below Q2 and three quarters below Q3.
     The exact values Q1, Q2 and Q3 depend on the method (default to 1):
 
+    ======  ============================================================
     Method  Description
     ======  ============================================================
     0       Standard method (1)
@@ -300,8 +379,10 @@ def quartiles(data, m=1):
     3       Method recommended by Moore and McCabe
     4       Method recommended by Mendenhall and Sincich (4)
     5       Method recommended by Freund and Perles (2) (5)
+    ======  ============================================================
 
     Notes:
+
     (1) Compute the first quartile Q1 with ``n / 4`` and Q3 with ``3n / 4``
     (2) Uses linear interpolation between items
     (3) Equivalent to Tukey's hinges H1, M, H2
@@ -370,10 +451,10 @@ def adev(data, m=median): ## absolute deviation
         [2, 1, 0, 1, 2]
         >>> adev(data, mean) ## Absolute deviation from the arithmetic mean
         [2.0, 1.0, 0.0, 1.0, 2.0]
-        >>> adev(data, mode) ## Absolute deviation from the mode
-        [4, 3, 2, 1, 0]
-        >>> adev(data, harmonic_mean) ## Absolute deviation from the harmonic mean
-        [1.1897810218978102, 0.1897810218978102, 0.8102189781021898, 1.8102189781021898, 2.81021897810219]
+        >>> adev(data + [1], mode) ## Absolute deviation from the mode
+        [0, 1, 2, 3, 4, 0]
+        >>> adev(data, harmonic_mean) ## Absolute deviation from the harmonic mean # doctest: +ELLIPSIS
+        [1.18978102..., 0.18978102..., 0.81021897..., 1.81021897..., 2.81021897...]
     '''
 
     try:
@@ -387,26 +468,26 @@ def adev1(data, m=median, e=1):
     Like :func:`adev`, but raise each element to *e* and after the sum take the *e*-th root::
 
         >>> data = [1, 2, 3, 4, 5]
-        >>> adev1(data, data[0], 2)
-        5.477225575051661
+        >>> adev1(data, data[0], 2) # doctest: +ELLIPSIS
+        5.47722557...
 
     Equivalent to::
 
         >>> adev(data, data[0]) ## Absolute deviation from the first point
         [0, 1, 2, 3, 4]
-        >>> sum(map(lambda i: i ** 2, adev(data, data[0]))) ** (1. / 2)
-        5.477225575051661
+        >>> sum(map(lambda i: i ** 2, adev(data, data[0]))) ** (1. / 2) # doctest: +ELLIPSIS
+        5.47722557...
 
     other examples::
 
-        >>> adev1(data, data[0], 9)
-        4.033122181324529
-        >>> sum(map(lambda i: i ** 9, adev(data, data[0]))) ** (1. / 9)
-        4.033122181324529
-        >>> adev1(data, median, 9)
-        2.1605878472891096
-        >>> sum(map(lambda i: i ** 9, adev(data, median))) ** (1. / 9)
-        2.1605878472891096
+        >>> adev1(data, data[0], 9) # doctest: +ELLIPSIS
+        4.03312218...
+        >>> sum(map(lambda i: i ** 9, adev(data, data[0]))) ** (1. / 9) # doctest: +ELLIPSIS
+        4.03312218...
+        >>> adev1(data, median, 9) # doctest: +ELLIPSIS
+        2.16058784...
+        >>> sum(map(lambda i: i ** 9, adev(data, median))) ** (1. / 9) # doctest: +ELLIPSIS
+        2.16058784...
     '''
 
     try:
@@ -426,7 +507,7 @@ def mad(data): ## median absolute deviation
 
 def stdev(data):
     '''
-    Returns the standard deviation of *data*::
+    Returns the sample standard deviation of *data*::
 
         >>> d = [1, 2, 3, 3, 5, 5, 5, 8]
         >>> stdev(d) # doctest: +ELLIPSIS
@@ -441,7 +522,7 @@ def stdev(data):
 
 def pstdev(data):
     '''
-    Returns the standard deviation of *data*::
+    Returns the population standard deviation of *data*::
 
         >>> d = [1, 2, 3, 3, 5, 5, 5, 8]
         >>> pstdev(d) # doctest: +ELLIPSIS
@@ -555,6 +636,8 @@ def gini(data):
         0.0
     '''
 
+    if len(data) == 0:
+        raise StatsError('no Gini coefficient defined for empty data set')
     return 1 - sum(map(lambda i: i ** 2, rfreq(data)))
 
 def gini1(data):
@@ -566,17 +649,22 @@ def gini1(data):
         >>> gini1(d)
         1.0
         >>> d = [1, 2, 3, 4, 5, 1, 3, 4, 6, 7, 2]
-        >>> gini1(d)
-        0.9272727272727271
+        >>> gini1(d) # doctest: +ELLIPSIS
+        0.92727272...
         >>> d = [1]
         >>> gini1(d)
         0.0
         >>> gini([])
-        0.0
+        Traceback (most recent call last):
+          File "<pyshell#1>", line 1, in <module>
+            gini([])
+          File "pyst.py", line 559, in gini
+            raise StatsError('no Gini coefficient defined for empty data set')
+        StatsError: no Gini coefficient defined for empty data set
     '''
 
     n = len(data)
-    if n in (0, 1):
+    if n == 1:
         return 0.
     return gini(data) * n / (n - 1)
 
@@ -588,13 +676,15 @@ def shannon(data):
         
     '''
 
-    n = len(data)
+    if len(data) == 0:
+        raise StatsError('no Shannon index defined for empty data set')
     return - sum(r * math.log(r) for r in rfreq(data))
 
 def shannon1(data):
-    if len(data) in (0, 1):
+    n = len(data)
+    if n == 1:
         return 0.
-    return shannon(data) / math.log(len(data))
+    return shannon(data) / math.log(n)
 
 ## Other functions
 
