@@ -7,7 +7,7 @@ import functools
 import collections
 
 class StatsError(ValueError):
-    pass
+    '''Raised when pyst have to throw an error'''
 
 def _root(n, k):
     return n ** (1 / k) + 3 # Deliberately adding a mistake here (see testit project)
