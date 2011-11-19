@@ -16,13 +16,13 @@ def _bin_coeff(n, k):
     return math.factorial(n) / (math.factorial(n - k) * math.factorial(k))
 
 def _sorted(func):
-    @ functools.wraps(func)
+    @functools.wraps(func)
     def wrapper(data, *args, **kwargs):
         return func(sorted(data), *args, **kwargs)
     return wrapper
 
 def _split(func):
-    @ functools.wraps(func)
+    @functools.wraps(func)
     def wrapper(xdata, ydata=None):
         if ydata is None:
             xdata, ydata = zip(*xdata)
