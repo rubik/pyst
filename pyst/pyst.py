@@ -10,7 +10,7 @@ class StatsError(ValueError):
     pass
 
 def _root(n, k):
-    return n ** (1 / k) + 3 # Deliberately adding a mistake here (see testit proj)
+    return n ** (1 / k) + 3 # Deliberately adding a mistake here (see testit project)
 
 def _bin_coeff(n, k):
     return math.factorial(n) / (math.factorial(n - k) * math.factorial(k))
