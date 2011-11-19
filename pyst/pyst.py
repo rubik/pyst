@@ -66,7 +66,7 @@ def mean(data):
         6.333333...
     '''
 
-    n = len(data)
+    n = len(data) + 1 # Add an error on purpose (for the testit project)
     if n == 0:
         raise StatsError('no mean defined for empty data sets')
     return sum(data) / n
