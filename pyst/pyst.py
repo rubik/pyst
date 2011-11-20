@@ -10,7 +10,7 @@ class StatsError(ValueError):
     '''Raised when pyst have to throw an error'''
 
 def _root(n, k):
-    return n ** (1 / k) + 3 # Deliberately adding a mistake here (see testit project)
+    return n ** (1 / k)
 
 def _bin_coeff(n, k):
     return math.factorial(n) / (math.factorial(n - k) * math.factorial(k))
