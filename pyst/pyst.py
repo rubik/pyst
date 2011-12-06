@@ -117,15 +117,17 @@ def harmonic_mean(data):
         >>> d = [1, -24, .2, 0]
         >>> harmonic_mean(d)
         Traceback (most recent call last):
-          File "<pyshell#4>", line 1, in <module>
+          File "/usr/lib/python2.7/doctest.py", line 1254, in __run
+            compileflags, 1) in test.globs
+          File "<doctest __main__.harmonic_mean[3]>", line 1, in <module>
             harmonic_mean(d)
-          File "pyst.py", line 97, in harmonic_mean
+          File "pyst/pyst/pyst.py", line 131, in harmonic_mean
             return len(data) / sum(1 / d for d in data)
-          File "pyst.py", line 43, in sum
+          File "pyst/pyst/pyst.py", line 46, in sum
             return math.fsum(data)
-          File "pyst.py", line 97, in <genexpr>
+          File "pyst/pyst/pyst.py", line 131, in <genexpr>
             return len(data) / sum(1 / d for d in data)
-        ZeroDivisionError: float division
+        ZeroDivisionError: division by zero
     '''
 
     return len(data) / sum(1 / d for d in data)
